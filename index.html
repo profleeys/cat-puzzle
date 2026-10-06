@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>貓咪拼圖 Cat Placement Puzzle</title>
+  <style>
+    :root {
+      --bg-main: #FBF8F3;
+      --card-bg: #FFFFFF;
+      --text-main: #332D2F;
+      --text-muted: #8E8388;
+      --border-color: #EFE6DC;
+      --accent: #E08EBE;
+      
+      /* Screenshot Palette */
+      --color-blue: #5EBBE5;
+      --color-purple: #8E70CC;
+      --color-yellow: #DEBD4F;
+      --color-plum: #BC5D89;
+      --color-teal: #4FBDAE;
+      --color-pink: #E19FC2;
+      
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px 12px 32px 12px;
+      touch-action: manipulation;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Header */
+    .header-banner {
+      width: 100%;
+      text-align: center;
+      padding: 4px 8px;
+    }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #695246;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Rules Pills */
+    .rules-pills {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      margin-top: 6px;
+    }
+
+    .rule-pill {
+      background: #F3EAE0;
+      color: #7A6658;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #EADDCF;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      justify-content: center;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 18px;
+      background: #FFFFFF;
+      border-radius: 30px;
+      box-shadow: 0 3px 12px rgba(110, 80, 60, 0.06);
+      border: 1px solid #F0E6DE;
+      margin-top: 4px;
+    }
+
+    .cat-count {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #4CAF50;
+    }
+
+    .cat-count .icon {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cat-count .number {
+      letter-spacing: 1px;
+    }
+
+    .timer-display {
+      font-size: 14px;
+      font-weight: 600;
+      color: #A3969C;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hearts-container {
+      display: flex;
+      gap: 6px;
+    }
+
+    .heart-icon {
+      font-size: 22px;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .heart-icon.lost {
+      filter: grayscale(1) opacity(0.35);
+      transform: scale(0.85);
+    }
+
+    .heart-icon.animate-loss {
+      animation: heartBreak 0.5s ease-out;
+    }
+
+    @keyframes heartBreak {
+      0% { transform: scale(1.4); }
+      50% { transform: scale(0.7) rotate(-15deg); }
+      100% { transform: scale(0.85) rotate(0deg); }
+    }
+
+    /* Level Selector & Info */
+    .level-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0 4px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #7D6B62;
+    }
+
+    .level-tag {
+      background: #F8EDE3;
+      padding: 4px 12px;
+      border-radius: 20px;
+      color: #8C5E3D;
+      border: 1px solid #E8D7CA;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .single-cell-hint-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6C5CE7;
+      background: #F0EDFE;
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid #DDD6FE;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    /* The 6x6 Board */
+    .board-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 100%; /* 1:1 Aspect ratio */
+      background: #EFE4D8;
+      border-radius: 20px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.08), 0 8px 24px rgba(90, 60, 40, 0.08);
+      overflow: hidden;
+      border: 3px solid #E5D6C8;
+    }
+
+    .board-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-template-rows: repeat(6, 1fr);
+      gap: 5px;
+      padding: 6px;
+    }
+
+    /* Grid Cell */
+    .cell {
+      position: relative;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .cell:active {
+      transform: scale(0.93);
+    }
+
+    .cell:hover {
+      filter: brightness(1.05);
+    }
+
+    /* Region Colors matching screenshot */
+    .cell.region-0 { background-color: var(--color-blue); }
+    .cell.region-1 { background-color: var(--color-purple); }
+    .cell.region-2 { background-color: var(--color-yellow); }
+    .cell.region-3 { background-color: var(--color-plum); }
+    .cell.region-4 { background-color: var(--color-teal); }
+    .cell.region-5 { background-color: var(--color-pink); }
+
+    /* Single cell starting glow */
+    .cell.is-single-cell::before {
+      content: "";
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      border-radius: 12px;
+      border: 2px dashed rgba(255, 255, 255, 0.9);
+      animation: pulseBorder 2s infinite ease-in-out;
+      pointer-events: none;
+    }
+
+    @keyframes pulseBorder {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.95; transform: scale(1.04); }
+    }
+
+    /* Inside cell: SVG Cat */
+    .cell .cat-icon {
+      width: 86%;
+      height: 86%;
+      object-fit: contain;
+      pointer-events: none;
+      animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      filter: drop-shadow(0 3px 5px rgba(0,0,0,0.22));
+    }
+
+    /* Inside cell: X Marker (White) */
+    .cell .x-marker {
+      width: 72%;
+      height: 72%;
+      pointer-events: none;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+    }
+
+    /* Inside cell: Red X Marker (Mistake) */
+    .cell .x-marker.mistake {
+      width: 76%;
+      height: 76%;
+      filter: drop-shadow(0 0 8px rgba(229, 57, 53, 0.7));
+      animation: shakeMistake 0.4s ease-in-out;
+    }
+
+    /* Conflict Shake */
+    .cell.conflict {
+      animation: shakeCell 0.45s ease-in-out;
+      box-shadow: 0 0 10px 4px rgba(235, 60, 60, 0.8) !important;
+      z-index: 5;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.2); opacity: 0; }
+      70% { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes shakeMistake {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      20% { transform: translate(-4px, -2px) scale(1.1); }
+      40% { transform: translate(4px, 2px) scale(1.1); }
+      60% { transform: translate(-3px, 1px) scale(1.05); }
+      80% { transform: translate(3px, -1px) scale(1.05); }
+    }
+
+    @keyframes shakeCell {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-5px, 0); }
+      40% { transform: translate(5px, 0); }
+      60% { transform: translate(-3px, 0); }
+      80% { transform: translate(3px, 0); }
+    }
+
+    /* Highlight matching region on hover */
+    .cell.hover-highlight {
+      filter: brightness(1.12);
+    }
+
+    /* Controls Bar */
+    .controls-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .tool-selector {
+      display: flex;
+      width: 100%;
+      background: #F0E6DD;
+      border-radius: 16px;
+      padding: 4px;
+      gap: 6px;
+      border: 1px solid #E4D7CD;
+    }
+
+    .tool-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: #79665A;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tool-btn.active {
+      background: #FFFFFF;
+      color: #4A3A31;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+
+    .tool-btn .btn-icon {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Secondary Action Buttons */
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 9px 8px;
+      background: #FFFFFF;
+      border: 1px solid #E8DBD0;
+      border-radius: 12px;
+      color: #6C5B52;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+      transition: all 0.15s ease;
+    }
+
+    .action-btn:active {
+      transform: scale(0.95);
+      background: #F5EEE6;
+    }
+
+    .action-btn:hover {
+      background: #FDFCFA;
+      border-color: #DECFC3;
+    }
+
+    /* Toggle Options Row */
+    .options-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      background: #FAF3EB;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #826E63;
+      border: 1px solid #EFE2D5;
+      width: 100%;
+    }
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .toggle-checkbox {
+      accent-color: #8E70CC;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* Modal / Dialog */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(40, 25, 20, 0.45);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal-box {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 24px 20px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(60, 30, 20, 0.2);
+      animation: zoomIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #4A3A31;
+      margin-bottom: 8px;
+    }
+
+    .modal-desc {
+      font-size: 14px;
+      color: #7D6B62;
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .modal-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #DEBD4F, #E08EBE);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(224, 142, 190, 0.4);
+      transition: transform 0.15s ease;
+    }
+
+    .modal-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* Confetti Canvas */
+    #confetti-canvas {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* Hint Toast */
+    .hint-toast {
+      position: fixed;
+      bottom: 20px;
+      background: #362E3B;
+      color: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: 24px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      z-index: 90;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: all 0.25s ease;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .hint-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti-canvas"></canvas>
+
+  <div class="game-container">
+    <!-- Header -->
+    <div class="header-banner">
+      <div class="header-title">
+        將每隻貓咪放到正確位置。規則簡單，挑戰十足 🐾
+      </div>
+      <!-- Rules Pills matching screenshot -->
+      <div class="rules-pills">
+        <div class="rule-pill">🎨 每種顏色一隻貓</div>
+        <div class="rule-pill">↔️ 同行同列僅一隻</div>
+        <div class="rule-pill">🚫 貓咪不能挨在一起</div>
+      </div>
+    </div>
+
+    <!-- Status Bar matching screenshot -->
+    <div class="status-bar">
+      <!-- Cat Counter 4/6 -->
+      <div class="cat-count">
+        <span class="icon" id="status-cat-icon"></span>
+        <span class="number" id="cat-count-text">0/6</span>
+      </div>
+
+      <!-- Timer -->
+      <div class="timer-display" id="timer-display">⏱️ 00:00</div>
+
+      <!-- Hearts matching screenshot -->
+      <div class="hearts-container" id="hearts-container">
+        <span class="heart-icon" id="heart-1">❤️</span>
+        <span class="heart-icon" id="heart-2">❤️</span>
+        <span class="heart-icon" id="heart-3">❤️</span>
+      </div>
+    </div>
+
+    <!-- Level Bar & Starting Hint Tag -->
+    <div class="level-bar">
+      <div class="level-tag">
+        <span id="level-title">關卡 1 (截圖經典)</span>
+      </div>
+      <div class="single-cell-hint-badge" id="single-cell-badge">
+        ⭐ 起點：尋找 1 格的顏色！
+      </div>
+    </div>
+
+    <!-- 6x6 Game Board -->
+    <div class="board-wrapper">
+      <div class="board-grid" id="board-grid"></div>
+    </div>
+
+    <!-- Control Area -->
+    <div class="controls-wrapper">
+      <!-- Tool Selector -->
+      <div class="tool-selector">
+        <button class="tool-btn active" id="tool-cat" onclick="setTool('cat')">
+          <span class="btn-icon" id="btn-cat-icon"></span>
+          <span>放貓咪 (🐱)</span>
+        </button>
+        <button class="tool-btn" id="tool-x" onclick="setTool('x')">
+          <span class="btn-icon" id="btn-x-icon"></span>
+          <span>放標記 (✖️)</span>
+        </button>
+      </div>
+
+      <!-- Secondary Action Buttons -->
+      <div class="actions-row">
+        <button class="action-btn" onclick="undoAction()">↩️ 復原</button>
+        <button class="action-btn" onclick="giveHint()">💡 提示</button>
+        <button class="action-btn" onclick="restartLevel()">🔄 重玩</button>
+        <button class="action-btn" onclick="showLevelSelect()">📜 換關卡</button>
+      </div>
+
+      <!-- Settings / Assisted features -->
+      <div class="options-row">
+        <label class="toggle-label">
+          <input type="checkbox" id="auto-x-toggle" class="toggle-checkbox" checked onchange="toggleAutoX(this.checked)">
+          <span>放貓時自動補 X (輔助)</span>
+        </label>
+        <label class="toggle-label">
+          <input type="checkbox" id="sound-toggle" class="toggle-checkbox" checked onchange="toggleSound(this.checked)">
+          <span>🔊 音效</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win / Game Over Modal -->
+  <div class="modal-overlay" id="game-modal">
+    <div class="modal-box">
+      <div class="modal-title" id="modal-title">🎉 太厲害了！</div>
+      <div class="modal-desc" id="modal-desc">你成功為所有貓咪找到了溫暖舒適的家！</div>
+      <button class="modal-btn" id="modal-btn" onclick="onModalButtonClick()">下一關 🐾</button>
+    </div>
+  </div>
+
+  <!-- Level Select Modal -->
+  <div class="modal-overlay" id="level-modal">
+    <div class="modal-box" style="max-height: 85vh; overflow-y: auto;">
+      <div class="modal-title">選擇關卡 🐾</div>
+      <div id="level-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 16px 0;"></div>
+      <button class="action-btn" style="width: 100%; margin-bottom: 8px; background: #FAF0E6; color: #8A5333; font-weight: 700;" onclick="generateRandomLevel()">🎲 隨機生成新關卡</button>
+      <button class="modal-btn" style="background: #EFE4D8; color: #6E5C50;" onclick="closeLevelModal()">關閉</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="hint-toast" id="hint-toast">提示訊息</div>
+
+  <script>
+    /* =========================================================================
+       1. SVG Graphics: Tuxedo Cat, White X, Red X
+       ========================================================================= */
+    const SVG_CAT_NORMAL = `
+      <svg viewBox="0 0 100 100" class="cat-icon" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="catEyeShine" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#E0E0E0"/>
+          </radialGradient>
+        </defs>
+        <!-- Ears -->
+        <polygon points="18,34 9,8 36,20" fill="#242127" stroke="#1A181E" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="18,28 14,14 30,21" fill="#F49EB4"/>
+        <polygon points="82,34 91,8 64,20" fill="#242127" stroke="#1A181E" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="82,28 86,14 70,21" fill="#F49EB4"/>
+        <!-- Head base (black tuxedo) -->
+        <ellipse cx="50" cy="54" rx="42" ry="38" fill="#242127"/>
+        <!-- White tuxedo muzzle & cheeks -->
+        <path d="M 22,62 C 22,46 36,44 50,56 C 64,44 78,46 78,62 C 78,78 68,88 50,88 C 32,88 22,78 22,62 Z" fill="#FFFFFF"/>
+        <!-- White forehead blaze -->
+        <path d="M 44,56 L 50,32 L 56,56 Z" fill="#FFFFFF"/>
+        <!-- Eyes -->
+        <ellipse cx="33" cy="50" rx="8" ry="10.5" fill="#1C1A1F"/>
+        <circle cx="31" cy="47" r="3.5" fill="url(#catEyeShine)"/>
+        <circle cx="35" cy="53" r="1.5" fill="#FFFFFF"/>
+        <ellipse cx="67" cy="50" rx="8" ry="10.5" fill="#1C1A1F"/>
+        <circle cx="65" cy="47" r="3.5" fill="url(#catEyeShine)"/>
+        <circle cx="69" cy="53" r="1.5" fill="#FFFFFF"/>
+        <!-- Cute Pink Nose -->
+        <polygon points="50,65 45.5,59.5 54.5,59.5" fill="#F07C9A"/>
+        <!-- Mouth -->
+        <path d="M 45.5,65.5 Q 41,69.5 37,66" fill="none" stroke="#634B54" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M 54.5,65.5 Q 59,69.5 63,66" fill="none" stroke="#634B54" stroke-width="2.2" stroke-linecap="round"/>
+        <!-- Cheeks Blush -->
+        <circle cx="26" cy="65" r="5.5" fill="#FFAEC5" opacity="0.5"/>
+        <circle cx="74" cy="65" r="5.5" fill="#FFAEC5" opacity="0.5"/>
+      </svg>
+    `;
+
+    const SVG_CAT_WINK = `
+      <svg viewBox="0 0 100 100" class="cat-icon" xmlns="http://www.w3.org/2000/svg">
+        <!-- Ears -->
+        <polygon points="18,34 9,8 36,20" fill="#242127" stroke="#1A181E" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="18,28 14,14 30,21" fill="#F49EB4"/>
+        <polygon points="82,34 91,8 64,20" fill="#242127" stroke="#1A181E" stroke-width="2" stroke-linejoin="round"/>
+        <polygon points="82,28 86,14 70,21" fill="#F49EB4"/>
+        <!-- Head -->
+        <ellipse cx="50" cy="54" rx="42" ry="38" fill="#242127"/>
+        <path d="M 22,62 C 22,46 36,44 50,56 C 64,44 78,46 78,62 C 78,78 68,88 50,88 C 32,88 22,78 22,62 Z" fill="#FFFFFF"/>
+        <path d="M 44,56 L 50,32 L 56,56 Z" fill="#FFFFFF"/>
+        <!-- Winking Left Eye -->
+        <path d="M 26,51 Q 33,44 40,51" fill="none" stroke="#242127" stroke-width="3.5" stroke-linecap="round"/>
+        <!-- Normal Right Eye -->
+        <ellipse cx="67" cy="50" rx="8" ry="10.5" fill="#1C1A1F"/>
+        <circle cx="65" cy="47" r="3.5" fill="#FFFFFF"/>
+        <circle cx="69" cy="53" r="1.5" fill="#FFFFFF"/>
+        <!-- Sparkle Star near winking eye -->
+        <path d="M 20,40 L 22,34 L 28,32 L 22,30 L 20,24 L 18,30 L 12,32 L 18,34 Z" fill="#FFEAA7"/>
+        <!-- Nose & Mouth -->
+        <polygon points="50,65 45.5,59.5 54.5,59.5" fill="#F07C9A"/>
+        <path d="M 45.5,65.5 Q 41,69.5 37,66" fill="none" stroke="#634B54" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M 54.5,65.5 Q 59,69.5 63,66" fill="none" stroke="#634B54" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="26" cy="65" r="5.5" fill="#FFAEC5" opacity="0.6"/>
+        <circle cx="74" cy="65" r="5.5" fill="#FFAEC5" opacity="0.5"/>
+      </svg>
+    `;
+
+    const SVG_X_WHITE = `
+      <svg viewBox="0 0 100 100" class="x-marker" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 26 26 L 74 74 M 74 26 L 26 74" stroke="#FFFFFF" stroke-width="19" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    const SVG_X_RED = `
+      <svg viewBox="0 0 100 100" class="x-marker mistake" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 26 26 L 74 74 M 74 26 L 26 74" stroke="#EE1122" stroke-width="21" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    /* Set Header and Tool button icons */
+    document.getElementById('status-cat-icon').innerHTML = SVG_CAT_NORMAL;
+    document.getElementById('btn-cat-icon').innerHTML = SVG_CAT_NORMAL;
+    document.getElementById('btn-x-icon').innerHTML = SVG_X_WHITE;
+
+    /* =========================================================================
+       2. Web Audio Synthesizer (Cute Meow, Pops, Error, Fanfare)
+       ========================================================================= */
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const t = audioCtx.currentTime;
+
+      if (type === 'meow') {
+        // Cute Kitten Meow Synthesis
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+
+        // Frequency contour: rise then fall (me-o-w)
+        osc.frequency.setValueAtTime(380, t);
+        osc.frequency.exponentialRampToValueAtTime(740, t + 0.12);
+        osc.frequency.exponentialRampToValueAtTime(460, t + 0.32);
+
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.25, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.36);
+
+      } else if (type === 'pop') {
+        // Crisp Wooden Pop / Tick
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.05);
+
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.06);
+
+      } else if (type === 'error') {
+        // Gentle Oops Buzz
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc1.type = 'sawtooth';
+        osc2.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(190, t);
+        osc2.frequency.setValueAtTime(178, t); // Dissonance
+
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.28);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + 0.29);
+        osc2.stop(t + 0.29);
+
+      } else if (type === 'fanfare') {
+        // Happy Victory Chimes: C5, E5, G5, C6
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          const noteTime = t + idx * 0.12;
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, noteTime);
+
+          gain.gain.setValueAtTime(0, noteTime);
+          gain.gain.linearRampToValueAtTime(0.25, noteTime + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.45);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(noteTime);
+          osc.stop(noteTime + 0.5);
+        });
+      }
+    }
+
+    function toggleSound(enabled) {
+      soundEnabled = enabled;
+      if (enabled) playSound('pop');
+    }
+
+    /* =========================================================================
+       3. Curated Levels Database (Level 1 is the EXACT screenshot level)
+       ========================================================================= */
+    const PRESET_LEVELS = [
+      {
+        id: 1,
+        name: "關卡 1 (截圖經典)",
+        /* 
+           Regions matching the screenshot:
+           0: Light Blue, 1: Purple (1 cell!), 2: Yellow, 3: Plum, 4: Teal, 5: Light Pink
+        */
+        grid: [
+          [0, 1, 2, 2, 2, 3],
+          [0, 0, 2, 2, 3, 3],
+          [0, 0, 3, 3, 3, 3],
+          [0, 0, 0, 3, 3, 3],
+          [4, 4, 5, 5, 3, 3],
+          [5, 5, 5, 5, 5, 5]
+        ],
+        singleCell: [0, 1], // Exactly 1 cell in region 1 (Purple)!
+        solution: [
+          [0, 1], [1, 3], [2, 5], [3, 2], [4, 0], [5, 4]
+        ]
+      },
+      {
+        id: 2,
+        name: "關卡 2 (貓咪小憩)",
+        grid: [
+          [1, 1, 0, 0, 0, 0],
+          [1, 1, 1, 0, 0, 0],
+          [2, 4, 3, 0, 0, 0],
+          [4, 4, 3, 3, 4, 0],
+          [4, 4, 4, 4, 4, 0],
+          [4, 4, 4, 4, 4, 5]
+        ],
+        singleCell: [5, 5],
+        solution: [
+          [0, 4], [1, 2], [2, 0], [3, 3], [4, 1], [5, 5]
+        ]
+      },
+      {
+        id: 3,
+        name: "關卡 3 (彩虹花園)",
+        grid: [
+          [1, 1, 1, 0, 0, 0],
+          [1, 1, 1, 1, 0, 0],
+          [1, 1, 1, 1, 3, 2],
+          [1, 1, 1, 3, 3, 3],
+          [4, 5, 5, 3, 3, 3],
+          [4, 4, 5, 5, 5, 5]
+        ],
+        singleCell: [2, 5],
+        solution: [
+          [0, 4], [1, 1], [2, 5], [3, 3], [4, 0], [5, 2]
+        ]
+      },
+      {
+        id: 4,
+        name: "關卡 4 (貓抓板之謎)",
+        grid: [
+          [0, 0, 0, 1, 1, 1],
+          [2, 0, 1, 1, 1, 1],
+          [2, 2, 1, 1, 1, 1],
+          [2, 2, 3, 4, 4, 1],
+          [2, 2, 2, 4, 4, 4],
+          [2, 2, 5, 5, 5, 5]
+        ],
+        singleCell: [3, 2],
+        solution: [
+          [0, 1], [1, 4], [2, 0], [3, 2], [4, 5], [5, 3]
+        ]
+      },
+      {
+        id: 5,
+        name: "關卡 5 (午後日光浴)",
+        grid: [
+          [0, 0, 0, 0, 1, 1],
+          [0, 0, 1, 1, 1, 3],
+          [2, 0, 4, 1, 3, 3],
+          [4, 4, 4, 4, 3, 3],
+          [4, 4, 4, 4, 3, 3],
+          [4, 4, 4, 4, 3, 5]
+        ],
+        singleCell: [2, 0],
+        solution: [
+          [0, 1], [1, 3], [2, 0], [3, 4], [4, 2], [5, 5]
+        ]
+      },
+      {
+        id: 6,
+        name: "關卡 6 (毛線球大冒險)",
+        grid: [
+          [1, 1, 0, 0, 0, 0],
+          [1, 1, 1, 1, 0, 0],
+          [3, 3, 1, 1, 0, 2],
+          [3, 3, 4, 4, 0, 4],
+          [4, 4, 4, 4, 4, 4],
+          [5, 4, 4, 4, 4, 4]
+        ],
+        singleCell: [5, 0],
+        solution: [
+          [0, 4], [1, 2], [2, 5], [3, 1], [4, 3], [5, 0]
+        ]
+      },
+      {
+        id: 7,
+        name: "關卡 7 (逗貓棒派對)",
+        grid: [
+          [3, 3, 0, 0, 0, 0],
+          [3, 3, 1, 1, 1, 0],
+          [3, 3, 3, 1, 2, 0],
+          [3, 4, 4, 4, 4, 4],
+          [5, 5, 5, 4, 4, 4],
+          [5, 5, 5, 4, 4, 4]
+        ],
+        singleCell: [2, 4],
+        solution: [
+          [0, 5], [1, 2], [2, 4], [3, 0], [4, 3], [5, 1]
+        ]
+      },
+      {
+        id: 8,
+        name: "關卡 8 (罐頭盛宴)",
+        grid: [
+          [0, 1, 1, 1, 1, 1],
+          [0, 0, 1, 1, 1, 1],
+          [0, 2, 1, 4, 1, 1],
+          [4, 2, 2, 4, 5, 3],
+          [4, 4, 4, 4, 5, 5],
+          [4, 4, 4, 4, 5, 5]
+        ],
+        singleCell: [3, 5],
+        solution: [
+          [0, 0], [1, 3], [2, 1], [3, 5], [4, 2], [5, 4]
+        ]
+      },
+      {
+        id: 9,
+        name: "關卡 9 (紙箱探險家)",
+        grid: [
+          [1, 1, 0, 0, 0, 0],
+          [1, 1, 0, 0, 0, 0],
+          [1, 1, 2, 0, 3, 5],
+          [4, 4, 4, 3, 3, 5],
+          [4, 4, 4, 5, 5, 5],
+          [4, 4, 4, 4, 5, 5]
+        ],
+        singleCell: [2, 2],
+        solution: [
+          [0, 3], [1, 0], [2, 2], [3, 4], [4, 1], [5, 5]
+        ]
+      },
+      {
+        id: 10,
+        name: "關卡 10 (喵皇加冕)",
+        grid: [
+          [1, 1, 1, 0, 0, 2],
+          [1, 1, 1, 0, 2, 2],
+          [1, 1, 1, 1, 2, 2],
+          [1, 3, 1, 2, 2, 2],
+          [1, 1, 1, 4, 4, 2],
+          [5, 1, 4, 4, 4, 4]
+        ],
+        singleCell: [3, 1],
+        solution: [
+          [0, 4], [1, 2], [2, 5], [3, 1], [4, 3], [5, 0]
+        ]
+      }
+    ];
+
+    /* =========================================================================
+       4. Game State & Logic
+       ========================================================================= */
+    let currentLevelIndex = 0;
+    let currentPuzzle = null;
+
+    // Board cell state: null (empty), 'cat', 'x', 'red_x'
+    let boardState = Array(6).fill(null).map(() => Array(6).fill(null));
+    let currentTool = 'cat'; // 'cat' or 'x'
+    let autoXEnabled = true;
+    let lives = 3;
+    let maxLives = 3;
+    let isGameOver = false;
+    let isGameWon = false;
+
+    // Move history for Undo
+    let history = [];
+
+    // Timer
+    let timerSeconds = 0;
+    let timerInterval = null;
+
+    // Touch / Drag marking
+    let isPointerDown = false;
+    let pointerDragTool = null;
+
+    function initGame() {
+      loadLevel(0);
+      setupGlobalEvents();
+    }
+
+    function loadLevel(levelIdx) {
+      currentLevelIndex = levelIdx;
+      currentPuzzle = PRESET_LEVELS[levelIdx];
+      resetBoardState();
+      renderBoard();
+      updateUI();
+      startTimer();
+    }
+
+    function resetBoardState() {
+      boardState = Array(6).fill(null).map(() => Array(6).fill(null));
+      history = [];
+      lives = maxLives;
+      isGameOver = false;
+      isGameWon = false;
+      timerSeconds = 0;
+    }
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!isGameOver && !isGameWon) {
+          timerSeconds++;
+          const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+          const secs = String(timerSeconds % 60).padStart(2, '0');
+          document.getElementById('timer-display').innerText = `⏱️ ${mins}:${secs}`;
+        }
+      }, 1000);
+    }
+
+    function renderBoard() {
+      const gridEl = document.getElementById('board-grid');
+      gridEl.innerHTML = '';
+
+      const [singleR, singleC] = currentPuzzle.singleCell;
+
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          const regionId = currentPuzzle.grid[r][c];
+          const cell = document.createElement('div');
+          cell.className = `cell region-${regionId}`;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+
+          // Single cell starting hint border
+          if (r === singleR && c === singleC) {
+            cell.classList.add('is-single-cell');
+          }
+
+          // Content inside cell
+          renderCellContent(cell, r, c);
+
+          // Interaction listeners
+          cell.addEventListener('pointerdown', (e) => onCellPointerDown(r, c, e));
+          cell.addEventListener('pointerenter', (e) => onCellPointerEnter(r, c, e));
+          cell.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            onCellRightClick(r, c);
+          });
+
+          gridEl.appendChild(cell);
+        }
+      }
+    }
+
+    function renderCellContent(cellEl, r, c) {
+      const state = boardState[r][c];
+      cellEl.innerHTML = '';
+      cellEl.classList.remove('conflict');
+
+      if (state === 'cat') {
+        // Cat at bottom-left winks with sparkle (just like screenshot!)
+        if (r === 4 && c === 0) {
+          cellEl.innerHTML = SVG_CAT_WINK;
+        } else {
+          cellEl.innerHTML = SVG_CAT_NORMAL;
+        }
+      } else if (state === 'x') {
+        cellEl.innerHTML = SVG_X_WHITE;
+      } else if (state === 'red_x') {
+        cellEl.innerHTML = SVG_X_RED;
+      }
+    }
+
+    function updateUI() {
+      // 1. Level Title
+      document.getElementById('level-title').innerText = currentPuzzle.name;
+
+      // 2. Cat Count
+      let catsPlaced = 0;
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (boardState[r][c] === 'cat') catsPlaced++;
+        }
+      }
+      document.getElementById('cat-count-text').innerText = `${catsPlaced}/6`;
+
+      // 3. Hearts Display
+      for (let i = 1; i <= 3; i++) {
+        const heartEl = document.getElementById(`heart-${i}`);
+        if (i <= lives) {
+          heartEl.classList.remove('lost');
+          heartEl.innerText = '❤️';
+        } else {
+          heartEl.classList.add('lost');
+          heartEl.innerText = '🤍';
+        }
+      }
+
+      // Check conflicts and highlight
+      checkConflicts();
+    }
+
+    /* =========================================================================
+       5. Cell Interactions (Pointer, Drag, Right-click)
+       ========================================================================= */
+    function setTool(tool) {
+      currentTool = tool;
+      document.getElementById('tool-cat').classList.toggle('active', tool === 'cat');
+      document.getElementById('tool-x').classList.toggle('active', tool === 'x');
+      playSound('pop');
+    }
+
+    function setupGlobalEvents() {
+      window.addEventListener('pointerup', () => {
+        isPointerDown = false;
+        pointerDragTool = null;
+      });
+      window.addEventListener('pointercancel', () => {
+        isPointerDown = false;
+        pointerDragTool = null;
+      });
+    }
+
+    function saveHistory() {
+      history.push({
+        board: boardState.map(row => [...row]),
+        lives: lives
+      });
+    }
+
+    function onCellPointerDown(r, c, e) {
+      if (isGameOver || isGameWon) return;
+      initAudio();
+      isPointerDown = true;
+
+      // Right-click is handled by contextmenu
+      if (e.button === 2) return;
+
+      saveHistory();
+
+      if (currentTool === 'cat') {
+        if (boardState[r][c] === 'cat') {
+          // Remove cat
+          boardState[r][c] = null;
+          playSound('pop');
+        } else {
+          // Attempt to place cat
+          placeCatWithValidation(r, c);
+        }
+      } else if (currentTool === 'x') {
+        pointerDragTool = (boardState[r][c] === 'x') ? 'clear' : 'x';
+        applyToolToCell(r, c, pointerDragTool);
+      }
+
+      refreshAllCells();
+      updateUI();
+      checkWinCondition();
+    }
+
+    function onCellPointerEnter(r, c, e) {
+      if (!isPointerDown || isGameOver || isGameWon) return;
+      if (currentTool === 'x' && pointerDragTool) {
+        applyToolToCell(r, c, pointerDragTool);
+        refreshAllCells();
+        updateUI();
+      }
+    }
+
+    function onCellRightClick(r, c) {
+      if (isGameOver || isGameWon) return;
+      initAudio();
+      saveHistory();
+
+      // Right-click toggles X
+      if (boardState[r][c] === 'x') {
+        boardState[r][c] = null;
+        playSound('pop');
+      } else {
+        boardState[r][c] = 'x';
+        playSound('pop');
+      }
+
+      refreshAllCells();
+      updateUI();
+    }
+
+    function applyToolToCell(r, c, toolMode) {
+      if (toolMode === 'x') {
+        if (boardState[r][c] !== 'cat') {
+          boardState[r][c] = 'x';
+          playSound('pop');
+        }
+      } else if (toolMode === 'clear') {
+        if (boardState[r][c] === 'x' || boardState[r][c] === 'red_x') {
+          boardState[r][c] = null;
+          playSound('pop');
+        }
+      }
+    }
+
+    function placeCatWithValidation(r, c) {
+      // Check if placing here directly conflicts with rules
+      const conflictReason = checkPlacementConflict(r, c);
+
+      if (conflictReason) {
+        // Mistake made!
+        lives--;
+        boardState[r][c] = 'red_x'; // Mark with Red X just like screenshot!
+        playSound('error');
+        showToast(conflictReason);
+
+        // Animate heart loss
+        const lostHeart = document.getElementById(`heart-${lives + 1}`);
+        if (lostHeart) lostHeart.classList.add('animate-loss');
+
+        if (lives <= 0) {
+          triggerGameOver();
+        }
+      } else {
+        // Valid placement!
+        boardState[r][c] = 'cat';
+        playSound('meow');
+
+        // Auto-fill X if enabled
+        if (autoXEnabled) {
+          autoFillX(r, c);
+        }
+      }
+    }
+
+    function checkPlacementConflict(r, c) {
+      const myRegion = currentPuzzle.grid[r][c];
+
+      // 1. Row conflict
+      for (let j = 0; j < 6; j++) {
+        if (j !== c && boardState[r][j] === 'cat') {
+          return "🚫 同一行已經有一隻貓咪囉！";
+        }
+      }
+
+      // 2. Col conflict
+      for (let i = 0; i < 6; i++) {
+        if (i !== r && boardState[i][c] === 'cat') {
+          return "🚫 同一列已經有一隻貓咪囉！";
+        }
+      }
+
+      // 3. Same region conflict
+      for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 6; j++) {
+          if ((i !== r || j !== c) && currentPuzzle.grid[i][j] === myRegion && boardState[i][j] === 'cat') {
+            return "🚫 這個顏色區域已經有一隻貓咪囉！";
+          }
+        }
+      }
+
+      // 4. Adjacency conflict (horizontal, vertical, diagonal)
+      for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < 6 && nc >= 0 && nc < 6) {
+            if (boardState[nr][nc] === 'cat') {
+              return "🚫 貓咪不能挨在一起 (前後左右斜角都不行)！";
+            }
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function autoFillX(catR, catC) {
+      const reg = currentPuzzle.grid[catR][catC];
+
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (r === catR && c === catC) continue;
+          if (boardState[r][c] === 'cat') continue;
+
+          const isSameRow = (r === catR);
+          const isSameCol = (c === catC);
+          const isSameRegion = (currentPuzzle.grid[r][c] === reg);
+          const isAdjacent = (Math.abs(r - catR) <= 1 && Math.abs(c - catC) <= 1);
+
+          if (isSameRow || isSameCol || isSameRegion || isAdjacent) {
+            boardState[r][c] = 'x';
+          }
+        }
+      }
+    }
+
+    function checkConflicts() {
+      const gridEl = document.getElementById('board-grid');
+      const cells = gridEl.querySelectorAll('.cell');
+
+      // Check all pairs of cats
+      const cats = [];
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (boardState[r][c] === 'cat') cats.push({ r, c, reg: currentPuzzle.grid[r][c] });
+        }
+      }
+
+      for (let i = 0; i < cats.length; i++) {
+        for (let j = i + 1; j < cats.length; j++) {
+          const c1 = cats[i];
+          const c2 = cats[j];
+
+          const sameRow = (c1.r === c2.r);
+          const sameCol = (c1.c === c2.c);
+          const sameReg = (c1.reg === c2.reg);
+          const adjacent = (Math.abs(c1.r - c2.r) <= 1 && Math.abs(c1.c - c2.c) <= 1);
+
+          if (sameRow || sameCol || sameReg || adjacent) {
+            const idx1 = c1.r * 6 + c1.c;
+            const idx2 = c2.r * 6 + c2.c;
+            if (cells[idx1]) cells[idx1].classList.add('conflict');
+            if (cells[idx2]) cells[idx2].classList.add('conflict');
+          }
+        }
+      }
+    }
+
+    function refreshAllCells() {
+      const gridEl = document.getElementById('board-grid');
+      const cells = gridEl.querySelectorAll('.cell');
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          const cell = cells[r * 6 + c];
+          if (cell) renderCellContent(cell, r, c);
+        }
+      }
+    }
+
+    /* =========================================================================
+       6. Win & Game Over Logic
+       ========================================================================= */
+    function checkWinCondition() {
+      let catsPlaced = 0;
+      for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+          if (boardState[r][c] === 'cat') catsPlaced++;
+        }
+      }
+
+      if (catsPlaced === 6) {
+        // Verify that there are zero conflicts
+        let valid = true;
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            if (boardState[r][c] === 'cat') {
+              boardState[r][c] = null; // temporarily remove to test
+              if (checkPlacementConflict(r, c) !== null) {
+                valid = false;
+              }
+              boardState[r][c] = 'cat';
+            }
+          }
+        }
+
+        if (valid) {
+          triggerWin();
+        }
+      }
+    }
+
+    function triggerWin() {
+      isGameWon = true;
+      playSound('fanfare');
+      fireConfetti();
+
+      const mins = Math.floor(timerSeconds / 60);
+      const secs = timerSeconds % 60;
+      const timeStr = mins > 0 ? `${mins} 分 ${secs} 秒` : `${secs} 秒`;
+
+      document.getElementById('modal-title').innerText = '🎉 完美過關！';
+      document.getElementById('modal-desc').innerHTML = `
+        <div style="font-size: 15px; margin-bottom: 6px;">🐱 6 隻貓咪全部找到了正確的位置！</div>
+        <div style="color: #A3969C; font-size: 13px;">⏱️ 通關時間：${timeStr} ｜ 剩餘愛心：${'❤️'.repeat(lives)}</div>
+      `;
+      document.getElementById('modal-btn').innerText = (currentLevelIndex < PRESET_LEVELS.length - 1) ? '進入下一關 🐾' : '隨機新關卡 🎲';
+      document.getElementById('game-modal').classList.add('show');
+    }
+
+    function triggerGameOver() {
+      isGameOver = true;
+      document.getElementById('modal-title').innerText = '💔 愛心用光了！';
+      document.getElementById('modal-desc').innerText = '別灰心，貓咪們很調皮！再試一次就能找到牠們的規律囉！';
+      document.getElementById('modal-btn').innerText = '重新開始此關 🔄';
+      document.getElementById('game-modal').classList.add('show');
+    }
+
+    function onModalButtonClick() {
+      document.getElementById('game-modal').classList.remove('show');
+      if (isGameWon) {
+        if (currentLevelIndex < PRESET_LEVELS.length - 1) {
+          loadLevel(currentLevelIndex + 1);
+        } else {
+          generateRandomLevel();
+        }
+      } else {
+        restartLevel();
+      }
+    }
+
+    /* =========================================================================
+       7. Secondary Controls: Undo, Restart, Hint, Settings
+       ========================================================================= */
+    function undoAction() {
+      if (history.length === 0) return;
+      const prev = history.pop();
+      boardState = prev.board.map(r => [...r]);
+      lives = prev.lives;
+      refreshAllCells();
+      updateUI();
+      playSound('pop');
+    }
+
+    function restartLevel() {
+      resetBoardState();
+      refreshAllCells();
+      updateUI();
+      startTimer();
+      playSound('pop');
+    }
+
+    function giveHint() {
+      const [singleR, singleC] = currentPuzzle.singleCell;
+
+      // Hint 1: Check if the size 1 cell has a cat yet
+      if (boardState[singleR][singleC] !== 'cat') {
+        showToast(`💡 提示：第 ${singleR + 1} 列第 ${singleC + 1} 行的顏色只有 1 格，必放貓咪！`);
+        highlightCell(singleR, singleC);
+        return;
+      }
+
+      // Hint 2: Look for a row that only has 1 spot left for a cat
+      for (let r = 0; r < 6; r++) {
+        let hasCat = false;
+        let emptyCols = [];
+        for (let c = 0; c < 6; c++) {
+          if (boardState[r][c] === 'cat') hasCat = true;
+          if (boardState[r][c] === null && checkPlacementConflict(r, c) === null) {
+            emptyCols.push(c);
+          }
+        }
+        if (!hasCat && emptyCols.length === 1) {
+          const c = emptyCols[0];
+          showToast(`💡 提示：第 ${r + 1} 列只剩下唯一的格子能放貓咪！`);
+          highlightCell(r, c);
+          return;
+        }
+      }
+
+      // Hint 3: Look for a color region with only 1 valid cell
+      for (let reg = 0; reg < 6; reg++) {
+        let hasCat = false;
+        let candidates = [];
+        for (let r = 0; r < 6; r++) {
+          for (let c = 0; c < 6; c++) {
+            if (currentPuzzle.grid[r][c] === reg) {
+              if (boardState[r][c] === 'cat') hasCat = true;
+              if (boardState[r][c] === null && checkPlacementConflict(r, c) === null) {
+                candidates.push([r, c]);
+              }
+            }
+          }
+        }
+        if (!hasCat && candidates.length === 1) {
+          const [r, c] = candidates[0];
+          showToast(`💡 提示：這個顏色只剩最後一個能放貓咪的位置囉！`);
+          highlightCell(r, c);
+          return;
+        }
+      }
+
+      // Hint 4: Solution hint
+      const sol = currentPuzzle.solution;
+      for (let [sr, sc] of sol) {
+        if (boardState[sr][sc] !== 'cat') {
+          showToast(`💡 試試看在第 ${sr + 1} 列第 ${sc + 1} 行放一隻貓咪！`);
+          highlightCell(sr, sc);
+          return;
+        }
+      }
+
+      showToast("💡 盤面檢查完畢，目前步驟都很正確喔！");
+    }
+
+    function highlightCell(r, c) {
+      const gridEl = document.getElementById('board-grid');
+      const cells = gridEl.querySelectorAll('.cell');
+      const cell = cells[r * 6 + c];
+      if (cell) {
+        cell.classList.add('conflict');
+        setTimeout(() => cell.classList.remove('conflict'), 1200);
+      }
+    }
+
+    function toggleAutoX(checked) {
+      autoXEnabled = checked;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('hint-toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    /* =========================================================================
+       8. Level Selection Modal & Procedural Generator
+       ========================================================================= */
+    function showLevelSelect() {
+      const listEl = document.getElementById('level-list');
+      listEl.innerHTML = '';
+      PRESET_LEVELS.forEach((lvl, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.style.padding = '10px 4px';
+        btn.style.fontWeight = (idx === currentLevelIndex) ? '800' : '600';
+        if (idx === currentLevelIndex) btn.style.border = '2px solid #8E70CC';
+        btn.innerText = lvl.name;
+        btn.onclick = () => {
+          closeLevelModal();
+          loadLevel(idx);
+        };
+        listEl.appendChild(btn);
+      });
+      document.getElementById('level-modal').classList.add('show');
+    }
+
+    function closeLevelModal() {
+      document.getElementById('level-modal').classList.remove('show');
+    }
+
+    /* Client-side Procedural Generator */
+    function generateRandomLevel() {
+      closeLevelModal();
+      showToast("🎲 正在生成獨特謎題...");
+
+      setTimeout(() => {
+        const newPuzzle = createProceduralLevel();
+        if (newPuzzle) {
+          PRESET_LEVELS.push(newPuzzle);
+          loadLevel(PRESET_LEVELS.length - 1);
+          showToast(`✨ 成功生成 ${newPuzzle.name}！`);
+        } else {
+          showToast("生成稍候，請重試！");
+        }
+      }, 50);
+    }
+
+    function createProceduralLevel() {
+      // 1. Solve all valid 6-queen independent sets
+      const allPlacements = [];
+      function solveQueens(r, q) {
+        if (r === 6) { allPlacements.push([...q]); return; }
+        for (let c = 0; c < 6; c++) {
+          let ok = true;
+          for (let pr = 0; pr < r; pr++) {
+            if (q[pr] === c || (Math.abs(pr - r) <= 1 && Math.abs(q[pr] - c) <= 1)) {
+              ok = false; break;
+            }
+          }
+          if (ok) { q[r] = c; solveQueens(r + 1, q); }
+        }
+      }
+      solveQueens(0, []);
+
+      // 2. Try random placement & growth
+      for (let attempt = 0; attempt < 300; attempt++) {
+        const queens = allPlacements[Math.floor(Math.random() * allPlacements.length)];
+        const singleIdx = Math.floor(Math.random() * 6);
+
+        const grid = Array(6).fill(-1).map(() => Array(6).fill(-1));
+        for (let r = 0; r < 6; r++) grid[r][queens[r]] = r;
+
+        const expandable = [0, 1, 2, 3, 4, 5].filter(x => x !== singleIdx);
+        let unassigned = 30;
+        const dr = [-1, 1, 0, 0];
+        const dc = [0, 0, -1, 1];
+
+        let failed = false;
+        while (unassigned > 0) {
+          const frontier = [];
+          for (let r = 0; r < 6; r++) {
+            for (let c = 0; c < 6; c++) {
+              if (grid[r][c] !== -1) continue;
+              const nRegs = [];
+              for (let d = 0; d < 4; d++) {
+                const nr = r + dr[d], nc = c + dc[d];
+                if (nr >= 0 && nr < 6 && nc >= 0 && nc < 6) {
+                  const reg = grid[nr][nc];
+                  if (reg !== -1 && expandable.includes(reg) && !nRegs.includes(reg)) {
+                    nRegs.push(reg);
+                  }
+                }
+              }
+              if (nRegs.length > 0) {
+                frontier.push({ r, c, reg: nRegs[Math.floor(Math.random() * nRegs.length)] });
+              }
+            }
+          }
+          if (frontier.length === 0) { failed = true; break; }
+          const pick = frontier[Math.floor(Math.random() * frontier.length)];
+          grid[pick.r][pick.c] = pick.reg;
+          unassigned--;
+        }
+
+        if (!failed && countSolutions(grid) === 1) {
+          return {
+            id: PRESET_LEVELS.length + 1,
+            name: `自訂關卡 ${PRESET_LEVELS.length + 1}`,
+            grid: grid,
+            singleCell: [singleIdx, queens[singleIdx]],
+            solution: queens.map((col, row) => [row, col])
+          };
+        }
+      }
+      return null;
+    }
+
+    function countSolutions(grid) {
+      let count = 0;
+      const rowCols = Array(6).fill(-1);
+      function solve(r) {
+        if (r === 6) { count++; return; }
+        for (let c = 0; c < 6; c++) {
+          const reg = grid[r][c];
+          let ok = true;
+          for (let pr = 0; pr < r; pr++) {
+            const pc = rowCols[pr];
+            if (pc === c || grid[pr][pc] === reg || (Math.abs(pr - r) <= 1 && Math.abs(pc - c) <= 1)) {
+              ok = false; break;
+            }
+          }
+          if (ok) {
+            rowCols[r] = c;
+            solve(r + 1);
+            if (count > 1) return;
+          }
+        }
+      }
+      solve(0);
+      return count;
+    }
+
+    /* =========================================================================
+       9. Celebration Confetti Particles
+       ========================================================================= */
+    function fireConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#5EBBE5', '#8E70CC', '#DEBD4F', '#BC5D89', '#4FBDAE', '#E19FC2', '#FFD700'];
+      const particles = [];
+
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 14,
+          vy: (Math.random() - 0.8) * 16,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          vRot: (Math.random() - 0.5) * 10,
+          opacity: 1
+        });
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.35; // gravity
+          p.rotation += p.vRot;
+          p.opacity -= 0.009;
+
+          if (p.opacity > 0) {
+            alive = true;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate((p.rotation * Math.PI) / 180);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = Math.max(0, p.opacity);
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+          }
+        });
+
+        if (alive) requestAnimationFrame(render);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      requestAnimationFrame(render);
+    }
+
+    // Start on load
+    window.addEventListener('DOMContentLoaded', initGame);
+  </script>
+</body>
+</html>
+
