@@ -107,7 +107,13 @@ app.post('/api/youtube-info', async (req, res) => {
   try {
     const { spawn } = require('child_process');
     const info = await new Promise((resolve, reject) => {
-      const proc = spawn(YTDLP_PATH, ['--dump-single-json', '--no-playlist', url]);
+      const proc = spawn(YTDLP_PATH, [
+        '--dump-single-json',
+        '--no-playlist',
+        '--extractor-args', 'youtube:player_client=ios',
+        '--js-runtimes', 'nodejs',
+        url
+      ]);
       const chunks = [];
       const errChunks = [];
       proc.stdout.on('data', d => chunks.push(d));
@@ -155,21 +161,26 @@ app.post('/api/convert', async (req, res) => {
       // YouTube: download audio via yt-dlp then convert
       if (!url) return res.status(400).json({ error: '缺少 YouTube URL' });
 
-      const YTDlpWrap = require('yt-dlp-wrap').default;
-      const ytDlp = new YTDlpWrap(YTDLP_PATH);
-
+      const { spawn } = require('child_process');
       const tempAudioPath = path.join(UPLOAD_DIR, jobId + '.%(ext)s');
 
       // Download best audio only
       await new Promise((resolve, reject) => {
-        ytDlp.exec([
+        const proc = spawn(YTDLP_PATH, [
           url,
           '-f', 'bestaudio',
           '-o', tempAudioPath,
-          '--no-playlist'
-        ])
-          .on('close', resolve)
-          .on('error', reject);
+          '--no-playlist',
+          '--extractor-args', 'youtube:player_client=ios',
+          '--js-runtimes', 'nodejs'
+        ]);
+        const errChunks = [];
+        proc.stderr.on('data', d => errChunks.push(d));
+        proc.on('close', code => {
+          if (code !== 0) return reject(new Error(Buffer.concat(errChunks).toString()));
+          resolve();
+        });
+        proc.on('error', reject);
       });
 
       // Find the downloaded file
