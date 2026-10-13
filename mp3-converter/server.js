@@ -13,7 +13,7 @@ const FFPROBE_PATH = process.env.FFPROBE_PATH || (isWin ? 'C:\\Tools\\ffmpeg\\bi
 const PORT         = process.env.PORT          || 3000;
 
 // YTDLP_PATH 若為相對路徑（如 ./bin/yt-dlp），以 __dirname 為基準轉成絕對路徑
-const _ytdlpRaw  = process.env.YTDLP_PATH || (isWin ? 'C:\\Tools\\yt-dlp\\yt-dlp.exe' : '/usr/local/bin/yt-dlp');
+const _ytdlpRaw  = process.env.YTDLP_PATH || (isWin ? 'C:\\Tools\\yt-dlp\\yt-dlp.exe' : './bin/yt-dlp');
 const YTDLP_PATH = path.isAbsolute(_ytdlpRaw) ? _ytdlpRaw : path.resolve(__dirname, _ytdlpRaw);
 
 
