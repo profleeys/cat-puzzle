@@ -10,8 +10,12 @@ const ffmpeg = require('fluent-ffmpeg');
 const isWin = process.platform === 'win32';
 const FFMPEG_PATH  = process.env.FFMPEG_PATH  || (isWin ? 'C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe'  : '/usr/bin/ffmpeg');
 const FFPROBE_PATH = process.env.FFPROBE_PATH || (isWin ? 'C:\\Tools\\ffmpeg\\bin\\ffprobe.exe' : '/usr/bin/ffprobe');
-const YTDLP_PATH   = process.env.YTDLP_PATH   || (isWin ? 'C:\\Tools\\yt-dlp\\yt-dlp.exe'      : '/usr/local/bin/yt-dlp');
 const PORT         = process.env.PORT          || 3000;
+
+// YTDLP_PATH 若為相對路徑（如 ./bin/yt-dlp），以 __dirname 為基準轉成絕對路徑
+const _ytdlpRaw  = process.env.YTDLP_PATH || (isWin ? 'C:\\Tools\\yt-dlp\\yt-dlp.exe' : '/usr/local/bin/yt-dlp');
+const YTDLP_PATH = path.isAbsolute(_ytdlpRaw) ? _ytdlpRaw : path.resolve(__dirname, _ytdlpRaw);
+
 
 ffmpeg.setFfmpegPath(FFMPEG_PATH);
 ffmpeg.setFfprobePath(FFPROBE_PATH);

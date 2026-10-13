@@ -15,10 +15,10 @@ services:
     region: singapore
     plan: free
     rootDir: mp3-converter
-    buildCommand: |
-      npm install
-      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
+    buildCommand: npm install && mkdir -p bin && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o bin/yt-dlp && chmod +x bin/yt-dlp
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: YTDLP_PATH
+        value: ./bin/yt-dlp
