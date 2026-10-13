@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mp3-converter
+    env: node
+    region: singapore          # 選離台灣最近的節點
+    plan: free                 # 免費方案即可
+    rootDir: .                 # render.yaml 與 server.js 同層
+    buildCommand: |
+      npm install
+      curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+      chmod +x /usr/local/bin/yt-dlp
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ffmpeg / ffprobe 在 Render Linux 容器內的預設路徑，不需另行設定
+      # 若容器路徑不同，可在 Render Dashboard → Environment 覆寫這兩個變數：
+      # FFMPEG_PATH  = /usr/bin/ffmpeg
+      # FFPROBE_PATH = /usr/bin/ffprobe
+

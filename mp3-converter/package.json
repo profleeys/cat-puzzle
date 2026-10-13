@@ -1,0 +1,20 @@
+{
+  "name": "mp3-converter",
+  "version": "1.0.0",
+  "description": "Upload file or YouTube URL, convert to MP3, trim by time range",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "yt-dlp-wrap": "^2.3.12",
+    "fluent-ffmpeg": "^2.1.2",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0"
+  }
+}
+
